@@ -5,6 +5,7 @@ function loadSettings() {
     AutoDescription: true,
     IgnoreGroups: false,
     IgnorePinned: true,
+    IgnoreRegionLocked: false,
     IgnoreWhitelist: false,
     IgnoreGroupsBG: false,
     IgnorePinnedBG: true,
@@ -18,11 +19,14 @@ function loadSettings() {
     InfiniteScrolling: true,
     ShowPoints: true,
     ShowButtons: true,
+    SteamProfileData: false,
     LoadFive: false,
     HideDlc: false,
     HideEntered: false,
     HideGroups: false,
+    HideMinChance: 0.01,
     HideNonTradingCards: false,
+    HideRegionLocked: false,
     HideWhitelist: false,
     PriorityGroup: false,
     PriorityRegion: false,
@@ -54,17 +58,21 @@ function fillSettingsDiv(settings) {
   document.getElementById('chkInfiniteScroll').checked = settings.InfiniteScrolling;
   document.getElementById('chkShowPoints').checked = settings.ShowPoints;
   document.getElementById('chkShowButtons').checked = settings.ShowButtons;
+  document.getElementById('chkSteamProfileData').checked = settings.SteamProfileData;
   document.getElementById('chkLoadFive').checked = settings.LoadFive;
   document.getElementById('chkHideDlc').checked = settings.HideDlc;
   document.getElementById('chkHideEntered').checked = settings.HideEntered;
   document.getElementById('chkHideGroups').checked = settings.HideGroups;
+  document.getElementById('hideMinChance').value = settings.HideMinChance;
   document.getElementById('chkHideNonTradingCards').checked = settings.HideNonTradingCards;
+  document.getElementById('chkHideRegionLocked').checked = settings.HideRegionLocked;
   document.getElementById('chkHideWhitelist').checked = settings.HideWhitelist;
   document.getElementById('chkNightTheme').checked = settings.NightTheme;
   // document.getElementById("chkLevelPriority").checked = settings.LevelPriority;
   document.getElementById('chkRepeatIfOnPage').checked = settings.RepeatIfOnPage;
   document.getElementById('chkIgnoreGroups').checked = settings.IgnoreGroups;
   document.getElementById('chkIgnorePinned').checked = settings.IgnorePinned;
+  document.getElementById('chkIgnoreRegionLocked').checked = settings.IgnoreRegionLocked;
   document.getElementById('chkIgnoreWhitelist').checked = settings.IgnoreWhitelist;
   document.getElementById('chkIgnoreGroupsBG').checked = settings.IgnoreGroupsBG;
   document.getElementById('chkIgnorePinnedBG').checked = settings.IgnorePinnedBG;
@@ -108,11 +116,14 @@ function settingsAttachEventListeners() {
       InfiniteScrolling: document.getElementById('chkInfiniteScroll').checked,
       ShowPoints: document.getElementById('chkShowPoints').checked,
       ShowButtons: document.getElementById('chkShowButtons').checked,
+      SteamProfileData: document.getElementById('chkSteamProfileData').checked,
       LoadFive: document.getElementById('chkLoadFive').checked,
       HideDlc: document.getElementById('chkHideDlc').checked,
       HideEntered: document.getElementById('chkHideEntered').checked,
       HideGroups: document.getElementById('chkHideGroups').checked,
+      HideMinChance: parseFloat(document.getElementById('hideMinChance').value, 10),
       HideNonTradingCards: document.getElementById('chkHideNonTradingCards').checked,
+      HideRegionLocked: document.getElementById('chkHideRegionLocked').checked,
       HideWhitelist: document.getElementById('chkHideWhitelist').checked,
       RepeatIfOnPage: document.getElementById('chkRepeatIfOnPage').checked,
       NightTheme: document.getElementById('chkNightTheme').checked,
@@ -126,6 +137,7 @@ function settingsAttachEventListeners() {
       PriorityWishlist: document.getElementById('chkWishlistPriority').checked,
       IgnoreGroups: document.getElementById('chkIgnoreGroups').checked,
       IgnorePinned: document.getElementById('chkIgnorePinned').checked,
+      IgnoreRegionLocked: document.getElementById('chkIgnoreRegionLocked').checked,
       IgnoreWhitelist: document.getElementById('chkIgnoreWhitelist').checked,
       IgnoreGroupsBG: document.getElementById('chkIgnoreGroupsBG').checked,
       IgnorePinnedBG: document.getElementById('chkIgnorePinnedBG').checked,
@@ -157,6 +169,25 @@ function settingsAttachEventListeners() {
         window.location.reload();
       }
     });
+  });
+
+  // grant "*://steamcommunity.com/profiles/*" permission
+  document.getElementById('chkSteamProfileData').addEventListener('change', function () {
+    if (this.checked) {
+      // chrome.permissions.* API is not available in content script
+      // we'll have to message background script to check if we have it
+
+      // set new event listener for anticipated response
+      chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.granted === 'true') {
+          // we have permission, do nothing
+        } else if (request.granted === 'false') {
+          // we don't have permission, uncheck this option
+          this.checked = false;
+        }
+      });
+      chrome.runtime.sendMessage({ task: 'checkPermission', ask: 'true' });
+    }
   });
 
   // to show 0.5 when value goes below 1 in hoursFieldBG field

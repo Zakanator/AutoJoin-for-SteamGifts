@@ -171,8 +171,8 @@ function pagesloaded() {
         if (jsonResponse.msg === 'Not Enough Points') {
           clearTimeouts = true;
         } else if (jsonResponse.points < settings.PointsToPreserve &&
-                   useWishlistPriorityForMainBG &&
-                   settings.IgnorePreserveWishlistOnMainBG) {
+          useWishlistPriorityForMainBG &&
+          settings.IgnorePreserveWishlistOnMainBG) {
           if (totalWishlistGAcnt === 1 || e > totalWishlistGAcnt - 2) {
             clearTimeouts = true;
           }
@@ -249,7 +249,7 @@ function settingsloaded() {
       }
     });
   } else {
-  /* Else check if won first (since pop-up disappears after first view), then start scanning pages */
+    /* Else check if won first (since pop-up disappears after first view), then start scanning pages */
     timepassed = 0; // reset timepassed
     const link = `https://www.steamgifts.com/giveaways/search?type=${settings.PageForBG}&level_min=${settings.MinLevelBG}&level_max=${settings.LastKnownLevel}&page=`;
     const wishLink = `https://www.steamgifts.com/giveaways/search?type=wishlist&level_min=${settings.MinLevelBG}&level_max=${settings.LastKnownLevel}&page=`;
@@ -406,6 +406,44 @@ chrome.runtime.onInstalled.addListener((updateInfo) => {
       }, () => {
         console.log('Migrated successfully minCost option from previous version');
       });
+    });
+  }
+});
+
+// Check if we have "*://steamcommunity.com/profiles/*" permission, ask for them if not
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  chrome.runtime.sendMessage({ task: 'checkPermission' });
+  if (request.task === 'checkPermission') {
+    console.log('Got a request for "*://steamcommunity.com/profiles/*" permission');
+    chrome.permissions.contains({
+      origins: ['*://steamcommunity.com/profiles/*'],
+    }, (result) => {
+      if (result) {
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+          console.log('We already have permission');
+          chrome.tabs.sendMessage(tabs[0].id, { granted: 'true' });
+          sendResponse({ granted: 'true' });
+        });
+      } else if (request.ask === 'true') {
+        // We don't have permission, try to request them if ask is 'true'
+        chrome.permissions.request({
+          origins: ['*://steamcommunity.com/profiles/*'],
+        }, (granted) => {
+          if (granted) {
+            chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+              console.log('Permission granted');
+              chrome.tabs.sendMessage(tabs[0].id, { granted: 'true' });
+            });
+          } else {
+            chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+              console.log('Permission declined');
+              chrome.tabs.sendMessage(tabs[0].id, { granted: 'false' });
+            });
+          }
+        });
+      } else {
+        sendResponse({ granted: 'false' });
+      }
     });
   }
 });

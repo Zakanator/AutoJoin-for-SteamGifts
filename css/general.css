@@ -193,6 +193,10 @@
 	width: 55px;
 }
 
+#settingsDiv #hideMinChance {
+	width: 65px;
+}
+
 #settingsDiv a {
 	vertical-align: middle;
 	text-decoration: none;
